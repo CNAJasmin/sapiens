@@ -19,9 +19,11 @@ image_size = (768, 1024) ## width x height
 data_preprocessor = dict(size=image_size)
 
 patch_size=16
-num_epochs=400
+# Updated number of epochs to 1 for testing, don't forget to re-update
+num_epochs=1
 
-pretrained_checkpoint='../pretrain/checkpoints/sapiens_0.6b/sapiens_0.6b_epoch_1600_clean.pth'
+# Changed path to where the model checkpoint is located
+pretrained_checkpoint='sapiens_host/pretrain/checkpoints/sapiens_0.6b/sapiens_0.6b_epoch_1600_clean.pth'
 
 vis_every_iters=100
 # vis_every_iters=1
@@ -30,27 +32,28 @@ evaluate_every_n_epochs = 1
 
 num_classes = 19 + 1 ## add background class
 
+# For SIGLA Fine-tuning: Only the face class is learned; background keeps a small weight as a stabilization regularizer.
 CLASS_WEIGHT = [
-    0.1,  # Background (very common)
-    1.5,  # Hat (less common)
-    1.0,  # Hair (common)
-    1.5,  # Glove (less common)
-    1.5,  # Sunglasses (less common)
-    0.8,  # UpperClothes (common)
-    1.2,  # Dress (less common)
-    1.0,  # Coat (common)
-    1.5,  # Socks (less common)
-    0.8,  # Pants (common)
-    1.2,  # Jumpsuits (less common)
-    1.5,  # Scarf (less common)
-    1.5,  # Skirt (less common)
-    0.7,  # Face (common)
-    1.0,  # Left-arm (common)
-    1.0,  # Right-arm (common)
-    1.0,  # Left-leg (common)
-    1.0,  # Right-leg (common)
-    1.5,  # Left-shoe (less common)
-    1.5   # Right-shoe (less common)
+    0.05,  # Background (very common)
+    0.0,  # Hat (less common)
+    0.0,  # Hair (common)
+    0.0,  # Glove (less common)
+    0.0,  # Sunglasses (less common)
+    0.0,  # UpperClothes (common)
+    0.0,  # Dress (less common)
+    0.0,  # Coat (common)
+    0.0,  # Socks (less common)
+    0.0,  # Pants (common)
+    0.0,  # Jumpsuits (less common)
+    0.0,  # Scarf (less common)
+    0.0,  # Skirt (less common)
+    1.0,  # Face (common)
+    0.0,  # Left-arm (common)
+    0.0,  # Right-arm (common)
+    0.0,  # Left-leg (common)
+    0.0,  # Right-leg (common)
+    0.0,  # Left-shoe (less common)
+    0.0   # Right-shoe (less common)
 ]
 
 ##--------------------------------------------------------------------------
@@ -188,13 +191,13 @@ test_pipeline = [
 ]
 
 ##------------------------------------------------------------------------
-dataset_lip_train = dict(
+dataset_train = dict(
         type='CIHPDataset',
         data_root='data/cihp',
         data_prefix=dict(img_path='Training/Images', seg_map_path='Training/Category_ids'),
         )
 
-train_datasets = [dataset_lip_train]
+train_datasets = [dataset_train]
 
 train_dataloader = dict(
     batch_size=1,
