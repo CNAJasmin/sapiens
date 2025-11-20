@@ -54,11 +54,25 @@ Sapiens offers a comprehensive suite for human-centric vision tasks (e.g., 2D po
 </p>
 
 
+## 📌 About This Fork
+
+This repository is a working fork of the original Sapiens codebase, created to support 
+experimentation for **Project SIGLA (System for Intelligent Growth and Learner Anthropometry)** under the [**Education Center for Artificial Intelligence Research (ECAIR)**](https://e.cair.ph/).  
+The goal of this fork is to adapt, refine, and test components of the Sapiens system 
+within SIGLA’s research and development workflows—particularly around environment 
+reproducibility, dependency management, and modular experimentation.
+
+No modifications in this fork alter the original scientific contributions or the 
+core model architectures proposed by the Sapiens authors. All upstream credit belongs 
+to the original team. This fork simply introduces environment tooling, workflow 
+adjustments, and development conveniences necessary for SIGLA-related experiments.
+
+
 ## 🚀 Getting Started
 
 ### Clone the Repository
    ```bash
-   git clone https://github.com/facebookresearch/sapiens.git
+   git clone https://github.com/CNAJasmin/sapiens.git
    export SAPIENS_ROOT=/path/to/sapiens
    ```
 
@@ -66,13 +80,14 @@ Sapiens offers a comprehensive suite for human-centric vision tasks (e.g., 2D po
    For users setting up their own environment primarily for running existing models in inference mode, we recommend the [Sapiens-Lite installation](lite/README.md).\
    This setup offers optimized inference (4x faster) with minimal dependencies (only PyTorch + numpy + cv2).
 
-### Full Installation
-   To replicate our complete training setup, run the provided installation script. \
-   This will create a new conda environment named `sapiens` and install all necessary dependencies.
+### Full Installation (Environment With uv)
+   To reproduce the full training environment in this fork, use the updated installation script: \
+   This will create a new conda environment named `sapiens_uv` and install all necessary dependencies.
 
    ```bash
    cd $SAPIENS_ROOT/_install
-   ./conda.sh
+   chmod +x ./conda_uv.sh
+   ./conda_uv.sh
    ```
 
    Please download the **original** checkpoints from [hugging-face](https://huggingface.co/facebook/sapiens). \
@@ -98,6 +113,18 @@ Sapiens offers a comprehensive suite for human-centric vision tasks (e.g., 2D po
    └── depth/
    └── normal/
    ```
+
+#### Notes on Dependency Resolution
+
+This fork switches to a `uv`-managed workflow for Python dependencies.  
+The environment resolution process includes:
+
+1. Using `uv pip compile` to resolve `requirements.in` into a fully pinned `requirements.txt`.
+2. Installing all packages into the conda environment using `uv pip sync`.
+3. Installing `openmim` and `mmcv` *after* PyTorch to avoid ABI conflicts.
+4. Avoiding conda-generated `file://` package paths by maintaining clean, relative editable installs for the Sapiens modules.
+
+These steps ensure a consistent, reproducible environment across machines without relying on upstream conda build artifacts.
 
 ## 🌟 Human-Centric Vision Tasks
 We finetune sapiens for multiple human-centric vision tasks. Please checkout the list below.
