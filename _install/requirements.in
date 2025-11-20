@@ -1,0 +1,79 @@
+addict 
+brotli 
+certifi 
+cffi 
+charset-normalizer 
+click==8.3.1
+contourpy==1.3.2
+cycler==0.12.1
+einops==0.8.1
+filelock 
+fonttools==4.60.1
+fsspec 
+ftfy 
+gmpy2 
+h2 
+hpack 
+hyperframe 
+idna 
+importlib-metadata 
+jinja2 
+kiwisolver==1.4.9
+markdown==3.10
+markdown-it-py 
+markupsafe 
+mat4py==0.6.0
+matplotlib==3.10.7
+mdurl 
+# mmcv  # Install pytorch first before mmcv as recommended in the docs: https://mmcv.readthedocs.io/en/latest/get_started/installation.html
+# mmengine-lite
+# Use the commands to install mmcv
+# pip install -U openmim
+# mim install mmcv
+model-index==0.1.11
+modelindex==0.0.2
+mpmath 
+networkx 
+ninja==1.13.0
+numpy<2 # Manually added `<2` restriction for numpy
+opencv-python # Removed version for open-cv `==4.12.0.88`
+ordered-set==4.1.0
+packaging 
+pillow==9.4.0
+pip 
+platformdirs 
+prettytable==3.17.0
+pycparser 
+pygments 
+pyparsing==3.2.5
+pysocks 
+pyyaml 
+regex 
+requests 
+rich 
+# Changed absolute file paths generated in requirements.in to relative paths.
+# -e file:///$SAPIENS_ROOT/cv
+# -e file:///$SAPIENS_ROOT/engine
+# -e file:///$SAPIENS_ROOT/pretrain
+# -e file:///$SAPIENS_ROOT/seg
+-e cv
+-e engine
+-e pretrain
+-e seg
+scipy==1.15.3
+setuptools==80.9.0
+six==1.17.0
+sympy 
+termcolor 
+tomli 
+torch 
+torchaudio==2.5.1
+torchvision==0.20.1
+triton==3.1.0
+typing-extensions 
+urllib3 
+wcwidth 
+wheel==0.45.1
+yapf 
+zipp 
+zstandard==0.25.0
