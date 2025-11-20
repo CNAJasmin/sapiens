@@ -1,11 +1,11 @@
 #!/bin/bash
 
 cd ../../.. || exit
-SAPIENS_CHECKPOINT_ROOT=/home/${USER}/sapiens_host
+SAPIENS_CHECKPOINT_ROOT=${SAPIENS_ROOT}/sapiens_host  # SAPIENS_CHECKPOINT_ROOT=/home/${USER}/sapiens_host
 
 #----------------------------set your input and output directories----------------------------------------------
-INPUT='../pose/demo/data/itw_videos/reel1'
-OUTPUT="/home/${USER}/Desktop/sapiens/seg/Outputs/vis/itw_videos/reel1_seg"
+INPUT="${SAPIENS_ROOT}/_testing/inputs"
+OUTPUT="${SAPIENS_ROOT}/_testing/outputs"
 
 #--------------------------MODEL CARD---------------
 # MODEL_NAME='sapiens_0.3b'; CHECKPOINT=$SAPIENS_CHECKPOINT_ROOT/seg/checkpoints/sapiens_0.3b/sapiens_0.3b_goliath_best_goliath_mIoU_7673_epoch_194.pth
