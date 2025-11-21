@@ -2,8 +2,8 @@ cd ../../../..
 
 ###--------------------------------------------------------------
 ## set gpu ids to use.
-# DEVICES=0,
-DEVICES=0,1,2,3,4,5,6,7,
+DEVICES=0,
+# DEVICES=0,1,2,3,4,5,6,7,
 
 RUN_FILE='./tools/dist_train.sh'
 PORT=$(( ((RANDOM<<15)|RANDOM) % 63001 + 2000 ))
