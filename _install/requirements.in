@@ -61,7 +61,7 @@ rich
 -e pretrain
 -e seg
 scipy==1.15.3
-setuptools==80.9.0
+setuptools
 six==1.17.0
 sympy 
 termcolor 
