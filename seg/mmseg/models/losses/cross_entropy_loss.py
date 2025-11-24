@@ -14,6 +14,13 @@ from mmseg.registry import MODELS
 from .utils import get_class_weight, weight_reduce_loss
 
 
+# Updated version of function without the 
+# label_weights = torch.tensor([class_weight[cls] for cls in label], ...) line
+# that breaks and gives the error
+# errorValueError: only one element tensors can be converted to Python scalars 
+# ../aten/src/ATen/native/cuda/IndexKernel.cu:92: operator(): 
+# block: [240,0,0], thread: [0,0,0] Assertion -sizes[i] <= index 
+# && index < sizes[i] && "index out of bounds" failed.
 def cross_entropy(pred,
                   label,
                   weight=None,
@@ -22,69 +29,127 @@ def cross_entropy(pred,
                   avg_factor=None,
                   ignore_index=-100,
                   avg_non_ignore=False):
-    """cross_entropy. The wrapper function for :func:`F.cross_entropy`
+    """Cross-entropy loss wrapper around torch.nn.functional.cross_entropy.
 
     Args:
-        pred (torch.Tensor): The prediction with shape (N, 1).
-        label (torch.Tensor): The learning label of the prediction.
-        weight (torch.Tensor, optional): Sample-wise loss weight.
-            Default: None.
-        class_weight (list[float], optional): The weight for each class.
-            Default: None.
-        reduction (str, optional): The method used to reduce the loss.
-            Options are 'none', 'mean' and 'sum'. Default: 'mean'.
-        avg_factor (int, optional): Average factor that is used to average
-            the loss. Default: None.
-        ignore_index (int): Specifies a target value that is ignored and
-            does not contribute to the input gradients. When
-            ``avg_non_ignore `` is ``True``, and the ``reduction`` is
-            ``''mean''``, the loss is averaged over non-ignored targets.
-            Defaults: -100.
-        avg_non_ignore (bool): The flag decides to whether the loss is
-            only averaged over non-ignored targets. Default: False.
-            `New in version 0.23.0.`
+        pred (torch.Tensor): Predictions of shape (N, C, ...) where C is
+            number of classes.
+        label (torch.Tensor): Ground-truth labels with the same spatial
+            shape as pred (without the channel dimension).
+        weight (torch.Tensor, optional): Sample-wise loss weight. Defaults to None.
+        class_weight (list[float] or torch.Tensor, optional): Per-class weights.
+            If a list is given, it will be converted to a tensor on pred's device.
+        reduction (str): 'none', 'mean', or 'sum'. Defaults to 'mean'.
+        avg_factor (int, optional): Factor used to average the loss. Defaults to None.
+        ignore_index (int): Label index to ignore. Defaults to -100.
+        avg_non_ignore (bool): If True and reduction='mean', average only over
+            non-ignored elements. Defaults to False.
     """
+    # Ensure class_weight is a tensor on the correct device if provided as list
+    if class_weight is not None and not isinstance(class_weight, torch.Tensor):
+        class_weight = pred.new_tensor(class_weight, dtype=torch.float)
 
-    # class_weight is a manual rescaling weight given to each class.
-    # If given, has to be a Tensor of size C element-wise losses
+    # Compute per-element cross-entropy loss (no reduction yet)
     loss = F.cross_entropy(
         pred,
         label,
         weight=class_weight,
         reduction='none',
-        ignore_index=ignore_index)
+        ignore_index=ignore_index,
+    )
 
-    # apply weights and do the reduction
-    # average loss over non-ignored elements
-    # pytorch's official cross_entropy average loss over non-ignored elements
-    # refer to https://github.com/pytorch/pytorch/blob/56b43f4fec1f76953f15a627694d4bba34588969/torch/nn/functional.py#L2660  # noqa
-    if (avg_factor is None) and reduction == 'mean':
-        if class_weight is None:
-            if avg_non_ignore:
-                avg_factor = label.numel() - (label
-                                              == ignore_index).sum().item()
-            else:
-                avg_factor = label.numel()
+    # Optionally adjust avg_factor when averaging over non-ignored elements
+    if reduction == 'mean' and avg_factor is None and avg_non_ignore:
+        # Count non-ignored labels
+        valid_mask = (label != ignore_index).float()
+        avg_factor = valid_mask.sum().clamp_min(1.).item()
 
-        else:
-            # the average factor should take the class weights into account
-            label_weights = torch.tensor([class_weight[cls] for cls in label], device=class_weight.device) ## this is not working
-
-            # Use the 'index_select' function to index a 1D tensor from a 3D index tens+++++or
-            # label_weights = torch.index_select(class_weight, 0, label.view(-1))
-
-            # # Reshape the 1D tensor back to the original 3D shape of 'label'
-            # label_weights = label_weights.view(label.size())
-
-            if avg_non_ignore:
-                label_weights[label == ignore_index] = 0
-            avg_factor = label_weights.sum()
-
+    # Apply sample-wise weighting (if provided) and final reduction
     if weight is not None:
         weight = weight.float()
-    loss = weight_reduce_loss(loss, weight=weight, reduction=reduction, avg_factor=avg_factor)
+
+    loss = weight_reduce_loss(
+        loss,
+        weight=weight,
+        reduction=reduction,
+        avg_factor=avg_factor,
+    )
 
     return loss
+
+# The original function below is broken.
+# It was replaced with the simpler one above.
+# def cross_entropy(pred,
+#                   label,
+#                   weight=None,
+#                   class_weight=None,
+#                   reduction='mean',
+#                   avg_factor=None,
+#                   ignore_index=-100,
+#                   avg_non_ignore=False):
+#     """cross_entropy. The wrapper function for :func:`F.cross_entropy`
+
+#     Args:
+#         pred (torch.Tensor): The prediction with shape (N, 1).
+#         label (torch.Tensor): The learning label of the prediction.
+#         weight (torch.Tensor, optional): Sample-wise loss weight.
+#             Default: None.
+#         class_weight (list[float], optional): The weight for each class.
+#             Default: None.
+#         reduction (str, optional): The method used to reduce the loss.
+#             Options are 'none', 'mean' and 'sum'. Default: 'mean'.
+#         avg_factor (int, optional): Average factor that is used to average
+#             the loss. Default: None.
+#         ignore_index (int): Specifies a target value that is ignored and
+#             does not contribute to the input gradients. When
+#             ``avg_non_ignore `` is ``True``, and the ``reduction`` is
+#             ``''mean''``, the loss is averaged over non-ignored targets.
+#             Defaults: -100.
+#         avg_non_ignore (bool): The flag decides to whether the loss is
+#             only averaged over non-ignored targets. Default: False.
+#             `New in version 0.23.0.`
+#     """
+
+#     # class_weight is a manual rescaling weight given to each class.
+#     # If given, has to be a Tensor of size C element-wise losses
+#     loss = F.cross_entropy(
+#         pred,
+#         label,
+#         weight=class_weight,
+#         reduction='none',
+#         ignore_index=ignore_index)
+
+#     # apply weights and do the reduction
+#     # average loss over non-ignored elements
+#     # pytorch's official cross_entropy average loss over non-ignored elements
+#     # refer to https://github.com/pytorch/pytorch/blob/56b43f4fec1f76953f15a627694d4bba34588969/torch/nn/functional.py#L2660  # noqa
+#     if (avg_factor is None) and reduction == 'mean':
+#         if class_weight is None:
+#             if avg_non_ignore:
+#                 avg_factor = label.numel() - (label
+#                                               == ignore_index).sum().item()
+#             else:
+#                 avg_factor = label.numel()
+
+#         else:
+#             # the average factor should take the class weights into account
+#             label_weights = torch.tensor([class_weight[cls] for cls in label], device=class_weight.device) ## this is not working
+
+#             # Use the 'index_select' function to index a 1D tensor from a 3D index tens+++++or
+#             # label_weights = torch.index_select(class_weight, 0, label.view(-1))
+
+#             # # Reshape the 1D tensor back to the original 3D shape of 'label'
+#             # label_weights = label_weights.view(label.size())
+
+#             if avg_non_ignore:
+#                 label_weights[label == ignore_index] = 0
+#             avg_factor = label_weights.sum()
+
+#     if weight is not None:
+#         weight = weight.float()
+#     loss = weight_reduce_loss(loss, weight=weight, reduction=reduction, avg_factor=avg_factor)
+
+#     return loss
 
 
 def _expand_onehot_labels(labels, label_weights, target_shape, ignore_index):
