@@ -4,6 +4,8 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+SAPIENS_ROOT = '/home/cnajasmin/ecair/experimentation/CNAJasmin-sapiens/sapiens'
+
 _base_ = [
     '../../_base_/default_runtime.py',
 ]
@@ -23,7 +25,7 @@ patch_size=16
 num_epochs=1
 
 # Changed path to where the model checkpoint is located
-pretrained_checkpoint='sapiens_host/pretrain/checkpoints/sapiens_0.6b/sapiens_0.6b_epoch_1600_clean.pth'
+pretrained_checkpoint=f'{SAPIENS_ROOT}/sapiens_host/pretrain/checkpoints/sapiens_0.6b/sapiens_0.6b_epoch_1600_clean.pth'
 
 vis_every_iters=100
 # vis_every_iters=1
@@ -98,7 +100,9 @@ model = dict(
         norm_cfg=norm_cfg,
         align_corners=False,
         # loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0, reduction='none', class_weight=CLASS_WEIGHT),
+        # loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0, reduction='none', class_weight=CLASS_WEIGHT),
+        # Removed reduction
+        loss_decode=dict(type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0, class_weight=CLASS_WEIGHT),
         ),
     # model training and testing settings
     train_cfg=dict(),
@@ -154,6 +158,9 @@ env_cfg = dict(
 )
 
 default_hooks = dict(
+    runtime_info=None, # To prevent the AssertionError when using
+    # File "/home/cnajasmin/anaconda3/envs/sapiens_uv/lib/python3.10/site-packages/mmengine/logging/message_hub.py", line 345, in _get_valid_value
+    # assert hasattr(value, 'numel') and value.numel() == 1
     timer=dict(type='IterTimerHook'),
     logger=dict(type='LoggerHook', interval=10),
     param_scheduler=dict(type='ParamSchedulerHook'),
@@ -193,7 +200,7 @@ test_pipeline = [
 ##------------------------------------------------------------------------
 dataset_train = dict(
         type='CIHPDataset',
-        data_root='data/cihp',
+        data_root=f'{SAPIENS_ROOT}/data/CIHP-Crowd-Instance-level-Human-Parsing-Dataset',
         data_prefix=dict(img_path='Training/Images', seg_map_path='Training/Category_ids'),
         )
 
@@ -217,7 +224,7 @@ val_dataloader = dict(
     sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
         type='CIHPDataset',
-        data_root='data/cihp',
+        data_root=f'{SAPIENS_ROOT}/data/CIHP-Crowd-Instance-level-Human-Parsing-Dataset',
         data_prefix=dict(img_path='Validation/Images', seg_map_path='Validation/Category_ids'),
         pipeline=test_pipeline))
 
