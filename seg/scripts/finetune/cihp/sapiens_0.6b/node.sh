@@ -25,8 +25,8 @@ LOAD_FROM=''
 ## debug mode is 1 gpu and allows to insert ipdb.set_trace. Turns off parallel dataloaders.
 ## multi-gpu model is N gpus. Parallel dataloaders turned on
 
-# mode='debug'
-mode='multi-gpu'
+mode='debug'
+# mode='multi-gpu'
 
 ###--------------------------------------------------------------
 CONFIG_FILE=configs/sapiens_seg/${DATASET}/${MODEL}.py

@@ -22,13 +22,12 @@ data_preprocessor = dict(size=image_size)
 
 patch_size=16
 # Updated number of epochs to 1 for testing, don't forget to re-update
-num_epochs=1
+num_epochs=3
 
 # Changed path to where the model checkpoint is located
 pretrained_checkpoint=f'{SAPIENS_ROOT}/sapiens_host/pretrain/checkpoints/sapiens_0.6b/sapiens_0.6b_epoch_1600_clean.pth'
 
-vis_every_iters=100
-# vis_every_iters=1
+vis_every_iters=5_000 # Originally every 100
 
 evaluate_every_n_epochs = 1
 
@@ -60,7 +59,7 @@ CLASS_WEIGHT = [
 
 ##--------------------------------------------------------------------------
 # model settings
-norm_cfg = dict(type='SyncBN', requires_grad=True)
+norm_cfg = dict(type='BN', requires_grad=True) # Originally SyncBN
 data_preprocessor = dict(
     type='SegDataPreProcessor',
     mean=[123.675, 116.28, 103.53],
@@ -115,14 +114,17 @@ custom_imports = dict(
     allow_failed_imports=False)
 
 ## make sure the num_layers is same as the architecture
+# Modified wrapper
 optim_wrapper = dict(
+    type='AmpOptimWrapper',  # enable automatic mixed precision
     optimizer=dict(
-        type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1),
+        type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1
+    ),
     paramwise_cfg=dict(
         num_layers=num_layers,
         layer_decay_rate=0.85,
         custom_keys={
-            'bias': dict(decay_multi=0.0),
+            'bias': dict(decay_mult=0.0),
             'pos_embed': dict(decay_mult=0.0),
             'relative_position_bias_table': dict(decay_mult=0.0),
             'norm': dict(decay_mult=0.0),
@@ -130,7 +132,26 @@ optim_wrapper = dict(
     ),
     constructor='LayerDecayOptimWrapperConstructor',
     clip_grad=dict(max_norm=1., norm_type=2),
+    dtype='float16',  # or 'bfloat16' if your stack supports it well
 )
+
+# Original wrapper
+# optim_wrapper = dict(
+#     optimizer=dict(
+#         type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1),
+#     paramwise_cfg=dict(
+#         num_layers=num_layers,
+#         layer_decay_rate=0.85,
+#         custom_keys={
+#             'bias': dict(decay_multi=0.0),
+#             'pos_embed': dict(decay_mult=0.0),
+#             'relative_position_bias_table': dict(decay_mult=0.0),
+#             'norm': dict(decay_mult=0.0),
+#         },
+#     ),
+#     constructor='LayerDecayOptimWrapperConstructor',
+#     clip_grad=dict(max_norm=1., norm_type=2),
+# )
 
 param_scheduler = [
     dict(
@@ -162,7 +183,7 @@ default_hooks = dict(
     # File "/home/cnajasmin/anaconda3/envs/sapiens_uv/lib/python3.10/site-packages/mmengine/logging/message_hub.py", line 345, in _get_valid_value
     # assert hasattr(value, 'numel') and value.numel() == 1
     timer=dict(type='IterTimerHook'),
-    logger=dict(type='LoggerHook', interval=10),
+    logger=dict(type='LoggerHook', interval=1),
     param_scheduler=dict(type='ParamSchedulerHook'),
     sampler_seed=dict(type='DistSamplerSeedHook'),
     checkpoint=dict(type='CheckpointHook', by_epoch=True, interval=1, max_keep_ckpts=-1),
@@ -172,21 +193,38 @@ default_hooks = dict(
 ##-----------------------------------------------------------------
 # https://github.com/MengzhangLI/mmsegmentation/blob/51bdfffda45118b418366a43f9e259fd0211710c/configs/_base_/datasets/lip_321x321.py
 # dataset settings
+# Modified Lighter Augmentations
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
     dict(
         type='RandomResize',
-        scale=(768, 1024), ## width, height
-        ratio_range=(0.75, 1.25),
-        keep_ratio=True),
-    dict(type='RandomCrop', crop_size=(1024, 768), cat_max_ratio=0.75), ## height, width
-    dict(type='Resize', scale=(768, 1024), keep_ratio=False), ## in case if image was too small and random crop returned the original image
-    dict(type='RandomRotate', prob=0.5, degree=45, pad_val=0, seg_pad_val=255), ## the black pixels are set as 255, dont care?
-    dict(type='RandomFlip', prob=0.5, swap_seg_labels=[(14, 15), (16, 17), (18, 19)]),
-    dict(type='PhotoMetricDistortion'),
-    dict(type='PackSegInputs')
+        scale=(768, 1024),
+        ratio_range=(0.8, 1.2),
+        keep_ratio=True
+    ),
+    dict(type='RandomFlip', prob=0.5),
+    dict(type='RandomRotate', prob=0.1, degree=10),
+    dict(type='PackSegInputs'),
+    
 ]
+
+# Original Heavier Augmentations
+# train_pipeline = [
+#     dict(type='LoadImageFromFile'),
+#     dict(type='LoadAnnotations'),
+#     dict(
+#         type='RandomResize',
+#         scale=(768, 1024), ## width, height
+#         ratio_range=(0.75, 1.25),
+#         keep_ratio=True),
+#     dict(type='RandomCrop', crop_size=(1024, 768), cat_max_ratio=0.75), ## height, width
+#     dict(type='Resize', scale=(768, 1024), keep_ratio=False), ## in case if image was too small and random crop returned the original image
+#     dict(type='RandomRotate', prob=0.5, degree=45, pad_val=0, seg_pad_val=255), ## the black pixels are set as 255, dont care?
+#     dict(type='RandomFlip', prob=0.5, swap_seg_labels=[(14, 15), (16, 17), (18, 19)]),
+#     dict(type='PhotoMetricDistortion'),
+#     dict(type='PackSegInputs')
+# ]
 
 test_pipeline = [
     dict(type='LoadImageFromFile'),
@@ -208,18 +246,19 @@ train_datasets = [dataset_train]
 
 train_dataloader = dict(
     batch_size=1,
-    num_workers=4,
+    num_workers=8,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
         type='CombinedDataset',
         metainfo=dict(from_file='configs/_base_/datasets/lip.py'),
         datasets=train_datasets,
+        indices=list(range(0, 5000)),
         pipeline=train_pipeline))
 
 val_dataloader = dict(
     batch_size=1,
-    num_workers=4,
+    num_workers=8,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
