@@ -186,7 +186,8 @@ default_hooks = dict(
     logger=dict(type='LoggerHook', interval=1),
     param_scheduler=dict(type='ParamSchedulerHook'),
     sampler_seed=dict(type='DistSamplerSeedHook'),
-    checkpoint=dict(type='CheckpointHook', by_epoch=True, interval=1, max_keep_ckpts=-1),
+    checkpoint=dict(type='CheckpointHook', by_epoch=False, interval=500, max_keep_ckpts=-1, save_optimizer=False, save_param_scheduler=False,), # switch to iteration-based saving
+    # checkpoint=dict(type='CheckpointHook', by_epoch=True, interval=1, max_keep_ckpts=-1),
     visualization=dict(type='GeneralSegVisualizationHook', interval=vis_every_iters, max_samples=4, vis_image_width=384, vis_image_height=512),
     )
 
@@ -205,6 +206,11 @@ train_pipeline = [
     ),
     dict(type='RandomFlip', prob=0.5),
     dict(type='RandomRotate', prob=0.1, degree=10),
+    dict(
+        type='RandomCrop',
+        crop_size=(1024, 768),  # final fixed size
+        cat_max_ratio=0.75,
+    ),
     dict(type='PackSegInputs'),
     
 ]
@@ -246,19 +252,19 @@ train_datasets = [dataset_train]
 
 train_dataloader = dict(
     batch_size=1,
-    num_workers=8,
+    num_workers=2,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
         type='CombinedDataset',
         metainfo=dict(from_file='configs/_base_/datasets/lip.py'),
         datasets=train_datasets,
-        indices=list(range(0, 5000)),
+        # indices=list(range(0, 5000)), # Can remove this argument if dealing with whole dataset
         pipeline=train_pipeline))
 
 val_dataloader = dict(
     batch_size=1,
-    num_workers=8,
+    num_workers=2,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
